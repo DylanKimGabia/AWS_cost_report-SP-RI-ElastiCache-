@@ -69,7 +69,7 @@
 
 ---
 
-## 📉 Savings Rate (절감률)
+## Savings Rate (절감률)
 On-Demand 대비 약정 옵션 선택 시 절감되는 비율을 백분율로 표기합니다.
 
 $$
@@ -78,7 +78,7 @@ $$
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 1. **API 실시간성:** 실행 시점의 AWS Price List API 데이터를 기준으로 합니다.
 2. **데이터 전처리:** EC2는 Pre-installed S/W가 없는 `NA` 기준입니다.
 3. **정밀도:** 엑셀 표기는 소수점 둘째 자리 반올림이나, 내부 연산은 `float` 정밀도를 유지합니다.

@@ -28,14 +28,14 @@
 ## 2. Calculation Logic
 모든 비용은 **USD($)** 기준이며, AWS 공식 월평균 시간(`730시간`)을 적용
 
-### 2_1. 공통 기준 (Time Basis)
+### [공통 기준] (Time Basis)
 | 기준 (Basis) | 시간 (Hours) | 비고 |
 | :--- | :---: | :--- |
 | **Monthly** | `730` | AWS 공식 월평균 시간 |
 | **1 Year** | `8,760` | 730 × 12 |
 | **3 Years** | `26,280` | 730 × 36 |
 
-### 2_2. Amazon EC2
+### 2_1. Amazon EC2
 - **대상:** Compute SP, Instance SP, Standard RI, Convertible RI
 - **필터:** Shared Tenancy, Used Capacity, Standard Offering Class
 
@@ -46,7 +46,7 @@
 | **All Upfront** | 월 환산액 | $\frac{Upfront_{Fee} \times Qty}{Months(12\ or\ 36)}$ |
 | | 1년 비용 | $Upfront_{Fee} \times Qty$ (1년 약정 시) |
 
-### 3. Amazon RDS
+### 2_2. Amazon RDS
 - **대상:** Aurora, Oracle, PostgreSQL, MySQL, MariaDB 등
 - **필터:** Single-AZ, Standard Edition (IOOptimized 제외)
 - **로직:** 1년 약정 데이터로 3년치 추산 / 3년 약정 데이터로 1년치 역산
@@ -58,7 +58,7 @@
 | **All Upfront** | 1년 추산 | $(Upfront_{3yr} \times Qty) \div 3$ (3년 약정 데이터 역산) |
 | | 3년 추산 | $(Upfront_{1yr} \times Qty) \times 3$ (1년 약정 데이터 추산) |
 
-### 4. Amazon ElastiCache
+### 2_3. Amazon ElastiCache
 - **대상:** Redis, Memcached, Valkey
 - **단가:** 노드(Node) 기준
 
@@ -70,7 +70,7 @@
 ---
 
 ## Savings Rate (절감률)
-On-Demand 대비 약정 옵션 선택 시 절감되는 비율을 백분율로 표기합니다.
+On-Demand 대비 약정 옵션 선택 시 절감되는 비율을 백분율로 표기됩니다.
 
 $$
 \text{Savings Rate (\%)} = \left( \frac{\text{On-Demand Cost} - \text{Commitment Cost}}{\text{On-Demand Cost}} \right) \times 100

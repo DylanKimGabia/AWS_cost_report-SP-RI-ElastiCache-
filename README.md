@@ -17,7 +17,7 @@
 ---
 
 ## 1. Work Stream
-1. **Auth:** AWS Pricing API (us-east-1) 연동
+1. **Auth:** AWS Pricing API (ap-northeast-2) 연동
 2. **Config:** 리전(Region) / OS / 테넌시 등 환경 변수 설정
 3. **Input:** 서비스별 인스턴스 타입 / 엔진 / 수량 입력 (Loop)
 4. **Logic:** 서비스별 전용 필터링 및 교차 비용 추산

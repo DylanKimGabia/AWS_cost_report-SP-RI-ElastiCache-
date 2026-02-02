@@ -3,8 +3,8 @@
 ### 제작자 :
 **클라우드사업팀 인턴 Dylan(김동현)**
 
-### 목적 : 고객사 환경에 맞는 최적의 비용 절감안 도출
-  -  AWS 인프라(EC2, RDS, ElastiCache)의 On-Demand 및 약정(Savings Plans, RI)
+### 목적 : 고객사 환경에 따른 AWS 예상 비용 자동화 추정
+  -  targets : AWS 인프라(EC2, RDS, ElastiCache)의 On-Demand 및 약정(Savings Plans, RI)
 
 
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white)

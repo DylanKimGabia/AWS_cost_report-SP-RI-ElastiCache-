@@ -3,7 +3,6 @@
 AWS_ACCESS = "개인 키 발급 필요"
 AWS_SECRET = "개인 키 발급 필요"
 
-
 import boto3
 import pandas as pd
 import numpy as np
@@ -100,9 +99,12 @@ class AWSUnifiedMasterEngine:
         except: return 0.0
 
     def _add_summary(self, df, opts, mode):
+        # 1. Total 계산
+        cols_to_sum = ['수량', '1년 요금', '3년 요금', '약정', '약정 단가']
+        
         total = ['Total'] + [np.nan]*(len(df.columns)-1)
         for i, col in enumerate(df.columns):
-            if col[1] in ['수량', '1년 요금', '3년 요금', '약정']:
+            if col[1] in cols_to_sum:
                 total[i] = df[col].apply(lambda x: 0 if x == "-" or pd.isna(x) else x).astype(float).sum()
         df.loc[len(df)] = total
         
@@ -112,19 +114,17 @@ class AWSUnifiedMasterEngine:
         
         idx = 6
         for opt_tuple in opts:
-            # RDS도 이제 4개 컬럼(단가, 월요금, 1년, 3년)을 가짐
             step = 4 if mode == 'RDS' else 6 
             
-            # 모든 서비스 공통 로직 (RDS, EC2, Cache 모두 1년/3년 컬럼이 존재함)
             # 1년 절감 계산
-            col_1y_idx = idx + (2 if mode == 'RDS' else 4) # RDS: idx+2가 1년요금 위치
+            col_1y_idx = idx + (2 if mode == 'RDS' else 4)
             c_total_1y = df.iloc[-1][(df.columns[idx][0], '1년 요금')]
             save_1y = od_1y - c_total_1y
             save_row[col_1y_idx] = save_1y
             if od_1y > 0: pct_row[col_1y_idx] = f"{(save_1y / od_1y) * 100:.2f}%"
             
             # 3년 절감 계산
-            col_3y_idx = idx + (3 if mode == 'RDS' else 5) # RDS: idx+3이 3년요금 위치
+            col_3y_idx = idx + (3 if mode == 'RDS' else 5)
             c_total_3y = df.iloc[-1][(df.columns[idx][0], '3년 요금')]
             save_3y = od_3y - c_total_3y
             save_row[col_3y_idx] = save_3y
@@ -133,6 +133,15 @@ class AWSUnifiedMasterEngine:
             idx += step
             
         df.loc[len(df)], df.loc[len(df)] = save_row, pct_row
+
+        # [수정 1] 소수점 처리 로직 변경
+        # '약정'만 3자리, '약정 단가' 등 나머지는 2자리
+        for col in df.columns:
+            if col[1] == '약정':  # 오직 '약정' 컬럼만
+                df[col] = df[col].apply(lambda x: round(x, 3) if isinstance(x, (int, float)) and not pd.isna(x) else x)
+            else:  # 나머지는 2자리
+                df[col] = df[col].apply(lambda x: round(x, 2) if isinstance(x, (int, float)) and not pd.isna(x) else x)
+
         return df
 
     def calc_ec2(self, instances, region, os):
@@ -146,7 +155,11 @@ class AWSUnifiedMasterEngine:
             for itype, qty in instances.items():
                 od_h = self.fetch_ec2(region, itype, os, 'od')
                 od_m = od_h * self.monthly_hours * qty
-                row = [itype, qty, od_h, od_m, od_m*12, od_m*36]
+                
+                # EC2 On-Demand 단가: 월간 단가로 변경
+                od_unit_monthly = od_h * self.monthly_hours
+                row = [itype, qty, od_unit_monthly, od_m, od_m*12, od_m*36]
+                
                 for _, _, opt, yr in self.ec2_opts:
                     p = self.fetch_ec2(region, itype, os, 'ri', yr, opt, target)
                     if opt == 'No Upfront':
@@ -162,7 +175,6 @@ class AWSUnifiedMasterEngine:
         return res
 
     def calc_rds(self, instances, region):
-        # [수정] RDS 컬럼 확장: 1년/3년 모두 포함 (기존 3개 -> 4개)
         cols = [('On-Demand', c) for c in ['인스턴스','수량','단가','월 요금','1년 요금','3년 요금']]
         for n, _, yr in self.rds_opts: cols += [(n, c) for c in ['단가','월 요금','1년 요금','3년 요금']]
         
@@ -176,19 +188,14 @@ class AWSUnifiedMasterEngine:
                 p = self.fetch_rds(region, itype, eng, 'ri', yr, opt)
                 if opt == 'No Upfront':
                     u = p * self.monthly_hours
-                    # 1년 약정이면 3년값 추산(x3), 3년 약정이면 1년값 추산(/3)
                     cost_1y = u * qty * 12
                     cost_3y = u * qty * 36
                     row += [u, u*qty, cost_1y, cost_3y]
-                else: # All Upfront
+                else:
                     months = 12 if yr == '1' else 36
                     monthly_amortized = (p * qty) / months
-                    
-                    # 1년 약정 -> 3년 계산: (가격) * 3
-                    # 3년 약정 -> 1년 계산: (가격) / 3
                     cost_1y = p * qty if yr == '1' else (p * qty) / 3
                     cost_3y = (p * qty) * 3 if yr == '1' else p * qty
-                    
                     row += [p, monthly_amortized, cost_1y, cost_3y]
             rows.append(row)
         return {"Reserved Instance": self._add_summary(pd.DataFrame(rows, columns=pd.MultiIndex.from_tuples(cols)), self.rds_opts, 'RDS')}
@@ -218,7 +225,7 @@ class AWSUnifiedMasterEngine:
 if __name__ == "__main__":
     eng = AWSUnifiedMasterEngine(AWS_ACCESS, AWS_SECRET)
     final = {}
-    print("=== AWS 정밀 산출 시스템 (v3.3 All Filled) ===")
+    print("=== AWS 정밀 산출 시스템 (v3.5 Final Fixed) ===")
     reg = input("리전 (기본: ap-northeast-2): ") or "ap-northeast-2"
     
     # 1. EC2
@@ -242,6 +249,7 @@ if __name__ == "__main__":
 
     # 3. Cache
     cache_in = {}
+    print("\n[ElastiCache 엔진: Redis, Memcached, Valkey 중 선택]")
     while True:
         t = input("Cache 타입 (q 종료): ")
         if t.lower() == 'q': break
@@ -252,11 +260,11 @@ if __name__ == "__main__":
 
     # 저장
     if final:
-        with pd.ExcelWriter("AWS_Report_Final_V3_3.xlsx", engine='openpyxl') as writer:
+        with pd.ExcelWriter("AWS_Report_Final_V3_5.xlsx", engine='openpyxl') as writer:
             for sheet, tables in final.items():
                 curr = 0
                 for tname, df in tables.items():
                     df.to_excel(writer, sheet_name=sheet, startrow=curr+1)
                     writer.sheets[sheet].cell(row=curr+1, column=1, value=f"■ {tname}").font = Font(bold=True)
                     curr += len(df) + 6
-        print("\n AWS_cost_report.xlsx 생성 ! 확인해보세요.")
+        print("\n Done ! ")

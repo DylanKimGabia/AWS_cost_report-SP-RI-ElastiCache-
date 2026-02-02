@@ -1,7 +1,7 @@
 # AWS 예산 추정 자동화
 
 ### 제작자 :
-**클라우드사업팀 인턴 Dylan(김동현)**
+**Gabia 클라우드사업팀 인턴 Dylan(김동현)**
 
 ### 목적 : 고객사 환경에 따른 AWS 예상 비용 자동화 추정
   -  targets : AWS 인프라(EC2, RDS, ElastiCache)의 On-Demand 및 약정(Savings Plans, RI)
